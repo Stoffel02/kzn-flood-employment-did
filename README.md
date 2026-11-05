@@ -1,6 +1,7 @@
 # The Effect of Floods on Municipal Employment: Evidence from a Flood in KwaZulu-Natal
 
-Stata code for my BCom Honours (Economics) research assignment at Stellenbosch University (2026).
+Stata code for my Honours research assignment in Economics at Stellenbosch University (2026).
+**The paper: [docs/paper.pdf](docs/paper.pdf).**
 
 **Question.** Did the May 2017 flood in KwaZulu-Natal change formal employment in the
 affected local municipalities, and did tradable and non-tradable sectors respond differently?
@@ -13,16 +14,16 @@ share of importing firms and its median income. The data are built from tax reco
 1. Build a municipality × month panel and group 1-digit SIC industries into tradable
    (primary, manufacturing, services) and non-tradable (government, services) sectors.
 2. Define treated municipalities as those in the flood-affected districts, and drop metros.
-3. Select control municipalities in the Eastern and Western Cape and KwaZulu-Natal with
-   **propensity-score matching** (`psmatch2`, 1 nearest neighbour without replacement) on
-   pre-flood (2013) size and sector composition.
+3. Select control municipalities in the coastal provinces (Eastern Cape, Western Cape,
+   KwaZulu-Natal) with **propensity-score matching** (`psmatch2`, logit) on pre-flood (2013)
+   employment and sector composition.
 4. Estimate **difference-in-differences** models (`xtdidregress`) of log FTE for treatment
    windows of 1, 3, 6 and 12 months, with lagged sector shares and import share as controls
    and standard errors clustered by municipality. Then test parallel trends (`estat ptrends`,
    `estat granger`), run the same model by sector, and add robustness checks (wild bootstrap,
    alternative control group, `reghdfe` with municipality-specific trends).
 
-<p align="center"><img src="docs/parallel_trends.jpg" width="640" alt="Parallel-trends diagnostic plot from the thesis"></p>
+<p align="center"><img src="docs/parallel_trends.png" width="720" alt="Observed means and linear-trends model of log FTE for treated and control municipalities, 2014-2019"></p>
 
 ## Repository layout
 
@@ -41,7 +42,7 @@ code/
   09_robustness.do        wild bootstrap, alternative control group, other checks
 exploratory/              original working script and side analyses (not part of the pipeline)
 data/README.md            where to download the data and where to put it
-docs/                     figures
+docs/                     paper and figure
 output/                   created by master.do (git-ignored)
 ```
 
@@ -56,7 +57,12 @@ Requirements: **Stata 18 or later** (`dtable` and `collect export` need 18, `xtd
    do master.do
    ```
    `master.do` installs any missing SSC packages, writes intermediate files to `data/work/`,
-   and writes tables and a log to `output/`.
+   and writes tables, the parallel-trends figure and a log to `output/`.
+
+The control group is set in `master.do` with `global controls`:
+
+- `"thesis"` (default): the 24 municipalities used in the paper (10 treated, 14 controls).
+- `"psm"`: the control group produced by `code/04_psm_controls.do` as written (10 treated, 10 controls).
 
 SSC packages (installed automatically): `psmatch2` (includes `pstest` and `psgraph`),
 `reghdfe` with `ftools` and `require`, `estout` (`esttab`, `eststo`, `estpost`),
@@ -72,20 +78,29 @@ the pipeline are marked `* PIPELINE:`, and known issues are marked `* FLAG:`.
 What has been checked:
 
 - **Input datasets.** `01` and `02` rebuild every intermediate input from the raw CSVs.
-  Each one was checked with `cf` against the files used in the thesis and is identical.
-- **Panel and estimates.** Given the same matched control group, `03`–`05` reproduce the final
-  analysis dataset, and `07` reproduces its estimates exactly.
+  Each one was checked with `cf` against the files used in the paper and is identical.
+- **Analysis dataset and estimates.** With `controls = "thesis"`, `03`–`05` reproduce the final
+  analysis dataset (1,622 municipality-months, 24 municipalities) and `07` reproduces its
+  estimates exactly (for example, 12-month ATET = −0.0028, N = 1,318).
 
 Known differences:
 
-- **Matched controls.** `04_psm_controls.do` as written selects a different set of control
-  municipalities from the one used in the thesis. The thesis used 14 controls, including
-  several KwaZulu-Natal municipalities that the code excludes, so that list came from an
-  earlier version of the matching step.
-- **Tables in the thesis.** The thesis tables were produced a few days before the final
+- **Control group.** Section 5.3 of the paper describes the match that produced the control
+  group: log(FTE) and five sector shares as covariates, two nearest neighbours, and no
+  exclusion of untreated KwaZulu-Natal municipalities. `04_psm_controls.do` is a later
+  version (FTE and municipal area as covariates, one neighbour without replacement, untreated
+  KwaZulu-Natal municipalities dropped). Neither version reproduces the paper's list exactly,
+  so the list is written into `05_did_sample.do` and used by default.
+- **Tables in the paper.** The paper's tables were produced a few days before the final
   dataset was saved. The rebuilt coefficients differ from them in the third decimal place,
   with the same signs and significance.
+- **Parallel-trends tests.** Stata's `estat ptrends`, `trendplots` and `granger` need a treatment
+  that stays on and controls without time-series operators. They are therefore run on the
+  plain DiD model `xtdidregress (log_FTE) (did)`. On the reproducible sample the linear-trends
+  test does not reject (F(1, 23) = 0.01, p = 0.91; the paper reports F = 0.12, p = 0.73), but
+  the Granger anticipation test does (p < 0.001). The figure above is produced by the pipeline;
+  the version in the paper came from an earlier sample.
 
 ## Author
 
-Stephan Stofberg, BCom Honours (Economics), Stellenbosch University.
+Stephan Stofberg, Honours in Economics, Stellenbosch University.
