@@ -1,3 +1,10 @@
+*===============================================================================
+* 01_build_industry.do - monthly FTE by 1-digit SIC7 industry per municipality
+* Part of the pipeline run by master.do (needs the globals set there).
+* Output: $work/New_monthly_industry.dta
+*===============================================================================
+clear
+
 //Local muni industry monthly FTE data
 
 import delimited "$raw/Local_Municipal_Data/Municipal_FTE_Industry5d_Monthly.csv", case(preserve) numericcols(8) clear

@@ -1,3 +1,8 @@
+*===============================================================================
+* ORIGINAL WORKING SCRIPT - kept for transparency, NOT part of the pipeline.
+* It does not run top to bottom (see the '* FLAG' comments). The reproducible
+* pipeline is master.do -> code/01..09, which copies the final blocks verbatim.
+*===============================================================================
 //Stephan Monthly FTE by local Muni
 //WARNING! DO NOT RUN ENTIRE THING AT ONCE, SOME CODE LEFT IN TO SHOW HOW SOME MERGED IN DATA WAS CREATED
 //Use FTE monthly data as base
@@ -1136,4 +1141,3 @@ grmap p1_avg_FTE, t(202202)
 xtsum FTE
 
 egen p1_avg_FTE = mean(FTE), by(panel_ID)
-

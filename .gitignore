@@ -14,7 +14,7 @@
 *.cpg
 *.sbn
 *.sbx
-data/
+data/*
 !data/README.md
 
 # ---- Stata logs and outputs ----
@@ -40,3 +40,6 @@ output/*
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ---- Local machine settings ----
+config_local.do
