@@ -5,6 +5,14 @@
 *===============================================================================
 clear
 
+* FLAG (reproducibility): this is the matching step as it stands in the original script.
+* Section 5.3 of the thesis describes the match that produced the control group actually
+* used (10 treated, 14 controls): log(FTE) and the five sector shares as covariates, two
+* nearest neighbours, and no exclusion of untreated KwaZulu-Natal municipalities. The code
+* below instead uses FTE and municipal area, one neighbour without replacement, and drops
+* panel_ID 62-103. Neither version reproduces the thesis list exactly, so 05_did_sample.do
+* uses that list directly by default ($controls = "thesis").
+
 use "$work/panel_full.dta", clear
 **# Bookmark #7
 //DiD set up

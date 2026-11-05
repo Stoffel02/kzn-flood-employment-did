@@ -6,10 +6,55 @@
 clear
 
 use "$work/panel_full.dta", clear
-* PIPELINE: matched_municipalities.dta is created by 04_psm_controls.do
+* PIPELINE: choose the control group with $controls (set in master.do)
+*   "thesis" - the 24 municipalities used in the thesis (10 treated, 14 controls).
+*              This list came from an earlier version of the matching step and is
+*              what the final analysis dataset and results were built on.
+*   "psm"    - the output of 04_psm_controls.do exactly as coded (10 treated, 10 controls).
+if "$controls" == "psm" {
 merge m:1 panel_ID using "$work/matched_municipalities.dta"
 drop _merge
 rename new_treated treated
+}
+else if "$controls" == "thesis" {
+    preserve
+    clear
+    input str6 CAT_B byte new_treated
+    "KZN212" 1
+    "KZN216" 1
+    "KZN241" 1
+    "KZN244" 1
+    "KZN281" 1
+    "KZN282" 1
+    "KZN284" 1
+    "KZN292" 1
+    "KZN293" 1
+    "KZN294" 1
+    "EC101"  0
+    "EC108"  0
+    "EC122"  0
+    "EC124"  0
+    "EC136"  0
+    "EC155"  0
+    "EC157"  0
+    "KZN225" 0
+    "KZN266" 0
+    "KZN276" 0
+    "KZN433" 0
+    "WC015"  0
+    "WC024"  0
+    "WC026"  0
+    end
+    save "$work/matched_municipalities_thesis.dta", replace
+    restore
+    merge m:1 CAT_B using "$work/matched_municipalities_thesis.dta"
+    drop _merge
+    rename new_treated treated
+}
+else {
+    di as error `"global controls must be "thesis" or "psm""'
+    exit 198
+}
 xtset panel_ID mdate
 **# Bookmark #7
 //DiD set up

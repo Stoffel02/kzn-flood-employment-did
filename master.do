@@ -47,6 +47,11 @@ if $install_packages {
 * xtdidregress, wildbootstrap (09_robustness.do) draws random numbers
 set seed 20170501
 
+*--- Control group ----------------------------------------------------------------
+* "thesis": the 24 matched municipalities used in the thesis (reproduces its dataset)
+* "psm"   : the control group produced by code/04_psm_controls.do as written
+global controls "thesis"
+
 *--- Run --------------------------------------------------------------------------
 * spshape2dta, grmap and spmap look for the _shp file in the current folder
 cd "$work"
@@ -56,7 +61,7 @@ log using "$output/master.log", replace text name(master)
 do "$code/01_build_industry.do"     // monthly FTE by industry   -> New_monthly_industry.dta
 do "$code/02_build_inputs.do"       // FTE, imports, income, map  -> input .dta files
 do "$code/03_build_panel.do"        // municipality-month panel   -> panel_full.dta
-do "$code/04_psm_controls.do"       // propensity-score matching  -> matched_municipalities.dta
+do "$code/04_psm_controls.do"       // propensity-score matching  -> matched_municipalities.dta (used if $controls == "psm")
 do "$code/05_did_sample.do"         // matched DiD sample         -> analysis_panel.dta
 do "$code/06_descriptives.do"       // summary statistics tables
 do "$code/07_main_did.do"           // main DiD results           -> DIDresults.rtf
