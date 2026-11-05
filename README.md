@@ -113,11 +113,15 @@ make now.
 
   Today I would keep one script per step, run it from top to bottom, and version the code with
   git from the first day.
-- **The parallel-trends evidence is weaker than the paper suggests.** The paper relies on the
-  linear-trends test, which does not reject. But the Granger test for anticipation effects rejects
-  strongly with both control groups (thesis group: F(23, 23) = 1516, p < 0.001; PSM group:
-  F(18, 19) = 41.9, p < 0.001). A comment in my original script says both tests support parallel
-  trends; that was wrong. With 10 treated municipalities the tests also have little power.
+- **Parallel trends can't be confirmed either way.** The linear-trends test does not reject,
+  but with 10 treated municipalities it has little power. Stata's Granger test for
+  pre-treatment effects rejects strongly with both control groups, but with monthly data it
+  tests about as many coefficients as there are clusters (F(23, 23) and F(18, 19)), so the
+  result is unreliable. The flood's timing is exogenous, but that alone doesn't guarantee
+  parallel trends: the treated municipalities are on the KwaZulu-Natal coast rather than
+  randomly chosen. A comment in my original script says both tests support parallel trends;
+  that overstated it. A better check would be an event study with leads grouped into a few
+  periods.
 - **Small sample.** There are 10 treated and 10–14 control municipalities, so standard errors are
   clustered on only 20–24 groups. The wild-bootstrap check in `09_robustness.do` helps, but the
   estimates are imprecise.
