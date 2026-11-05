@@ -97,9 +97,33 @@ Known differences:
 - **Parallel-trends tests.** Stata's `estat ptrends`, `trendplots` and `granger` need a treatment
   that stays on and controls without time-series operators. They are therefore run on the
   plain DiD model `xtdidregress (log_FTE) (did)`. On the reproducible sample the linear-trends
-  test does not reject (F(1, 23) = 0.01, p = 0.91; the paper reports F = 0.12, p = 0.73), but
-  the Granger anticipation test does (p < 0.001). The figure above is produced by the pipeline;
-  the version in the paper came from an earlier sample.
+  test gives F(1, 23) = 0.01, p = 0.91; the paper reports F = 0.12, p = 0.73. The figure above
+  is produced by the pipeline; the version in the paper came from an earlier sample.
+
+## Limitations
+
+This was my Honours research project, and I made mistakes along the way that I wouldn't
+make now.
+
+- **I didn't keep a complete record of the code behind every result.** I worked interactively,
+  ran parts of a long script out of order, and saved intermediate datasets by hand. As a result:
+  - the control group in the paper can't be regenerated from the code (see above);
+  - the paper's tables came from a version of the data a few days older than the final dataset;
+  - I don't know which model the parallel-trends tests in the paper were run after.
+
+  Today I would keep one script per step, run it from top to bottom, and version the code with
+  git from the first day.
+- **The parallel-trends evidence is weaker than the paper suggests.** The paper relies on the
+  linear-trends test, which does not reject. But the Granger test for anticipation effects rejects
+  strongly with both control groups (thesis group: F(23, 23) = 1516, p < 0.001; PSM group:
+  F(18, 19) = 41.9, p < 0.001). A comment in my original script says both tests support parallel
+  trends; that was wrong. With 10 treated municipalities the tests also have little power.
+- **Small sample.** There are 10 treated and 10–14 control municipalities, so standard errors are
+  clustered on only 20–24 groups. The wild-bootstrap check in `09_robustness.do` helps, but the
+  estimates are imprecise.
+- **The treatment windows switch off.** The 1-, 3-, 6- and 12-month DiD dummies turn back to zero
+  after the window, so later months of treated municipalities act as untreated observations. An
+  event-study design (for example Callaway and Sant'Anna) would handle the timing more cleanly.
 
 ## Author
 
