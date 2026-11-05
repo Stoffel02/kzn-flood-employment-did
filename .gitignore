@@ -1,0 +1,42 @@
+# ---- Data: never commit (licensed / large) ----
+*.dta
+*.csv
+*.xlsx
+*.xls
+*.txt
+!requirements.txt
+*.7z
+*.zip
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.sbn
+*.sbx
+data/
+!data/README.md
+
+# ---- Stata logs and outputs ----
+*.log
+*.smcl
+*.gph
+*.ster
+*.rtf
+*.doc
+*.docx
+*.tex
+output/*
+!output/.gitkeep
+
+# ---- Documents (only the curated docs/ folder is tracked) ----
+*.pdf
+!docs/*.pdf
+
+# ---- Stata / editor / OS junk ----
+*.stswp
+*.tmp
+~$*
+.DS_Store
+Thumbs.db
+desktop.ini

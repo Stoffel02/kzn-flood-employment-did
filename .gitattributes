@@ -1,0 +1,7 @@
+* text=auto
+*.do  text eol=crlf
+*.ado text eol=crlf
+*.md  text eol=lf
+*.pdf binary
+*.jpg binary
+*.png binary
