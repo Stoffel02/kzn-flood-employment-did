@@ -4,6 +4,7 @@
 use "$work/Local_Municipal_Data_FTE_Monthly.dta"
 
 //Clean data from error observations
+* FLAG (provenance): the commented-out lines below were run once on Municipal_FTE_Monthly.csv to create Local_Municipal_Data_FTE_Monthly.dta.
 //drop if CAT_B == "Missing Location Data"
 //drop if CAT_B == "Unknown Location - Head Office Anomaly"
 
@@ -100,13 +101,15 @@ by _ID: egen metro_neigh_count_all = max(metro_neigh_count)
 *1 if neigbour a metro
 gen byte neighb_metro = metro_neigh_count_all > 0
 
-*Kry distance van alle muni's van metro
+*Get the distance of all municipalities from a metro
 
+* FLAG (reproducibility): matched_municipalities.dta (panel_ID new_treated) is created further down by the PSM block, so this merge only works on a second pass.
 merge m:1 panel_ID using "$work/matched_municipalities.dta"
 drop _merge
 rename new_treated treated
 xtset panel_ID mdate
 
+* FLAG (reproducibility): flood_CY/flood_CX only exist after the (deprecated) flood merge below; this line errors on the current panel.
 geodist _CY _CX flood_CY flood_CX, gen(dist_km)
 
 
@@ -120,9 +123,10 @@ bysort panel_ID: egen ever2013 = max(had2013)
 gen affected = 0
 
 //These are the district municipalities affected by the flood in 2017, and only including municipalities that existed in the base year 2013.
+* FLAG (reproducibility): treated districts are selected by encode-generated codes, which depend on the alphabetical order of DISTRICT_N. Consider selecting by district name instead.
 replace affected = 1 if inlist(district_id, 42, 52, 24, 39) 
 //replace affected = 1 if (dist_km < flood_radius) & province_id==4
-*WTF is going on
+*Data check: some sector FTE totals exceed total municipal FTE
 // Flag if ANY sector is greater than total FTE
 gen invalid = 0
 replace invalid = 1 if FTE_tradable_primary > FTE
@@ -200,6 +204,7 @@ replace time_1m = 1 if mdate >= tm(2017m5) & mdate <= tm(2017m6)
 gen time_3m = 0
 replace time_3m = 1 if mdate >= tm(2017m5) & mdate<=tm(2017m8)
 *create a dummy variable to identify the group exposed to the treatment.
+* FLAG (reproducibility): if the matched-sample merge near the top was run, treated already exists and this errors. Define treated here for the PSM pass, or merge the matched list for the estimation pass - not both.
 gen treated = 0
 replace treated = 1 if affected ==1
 
@@ -261,32 +266,35 @@ drop if is_metro == 1
 xtsum FTE 
 xtset panel_ID mdate
 
-* Make a categorical variable for mapping; idk
+* Make a categorical variable for mapping
 
 *--------------------------------
 *Create propper control group
 *--------------------------------
-*Restrict the sample to 2013 because first pre-treatment full year of data, averaged to smooth out. maak 2014m3
+*Restrict the sample to 2013 because first pre-treatment full year of data, averaged to smooth out. (Note: consider 2014m3)
 keep if mdate<=tm(2013m12)
 
 *Beacuase KZN is a coastal province makes sense to restrict the control group to similar coastal provinces of Eastern Cape and Western Cape
 keep if inlist(province_id, 1, 4, 9)
 *restrict the sample to the municipalities that are continuous to metros and my treated municipalities, done because the labour market of metro's and areas surounfing them are very different to more rural markets (cite)
+* FLAG (reproducibility): hard-coded panel_ID range; panel_ID comes from encode CAT_B, so the numbers depend on the alphabetical order of municipality codes.
 drop if panel_ID>= 62 & panel_ID<=103 & treated == 0
 //keep if neighb_metro == 1 | treated ==1
 *Drop the actual metros
 drop if is_metro == 1
 //preserve
 collapse (mean) log_FTE FTE FTE_tradable_primary_share FTE_tradable_manu_share FTE_tradable_services_share FTE_nontradable_gov_share FTE_nontradable_services_share (first) treated y_m_date _ID _CX _CY Shape__Are Shape__Len year province_id district_id, by(panel_ID)
+* FLAG (results): sample size written as a comment.
 *Is now a sample of 76 muni's in 3 provinces
 //gen byte treated = inlist(panel_ID, 79, 97, 92, 62, 61, 63)
 //restore
-*Moet ek dit doen?
+*Should this be done? (would exclude the Western Cape)
 *Exclude WC
 //drop if panel_ID >=190 & panel_ID<=213
 
 *------------------------------------------------------------
 *Use only 2014 information to find similar control municipalities using psmatch2; MedianIncome doesnt exist in 2013
+* FLAG (reproducibility): 1-nearest-neighbour matching without replacement depends on the sort order of the data and no seed is set, so the matched set can change between runs.
 psmatch2 treated Shape__Are FTE FTE_tradable_primary_share FTE_tradable_manu_share FTE_tradable_services_share FTE_nontradable_gov_share FTE_nontradable_services_share , logit neighbor(1) noreplacement
 
 pstest FTE Shape__Are FTE_tradable_primary_share FTE_tradable_manu_share FTE_tradable_services_share FTE_nontradable_gov_share FTE_nontradable_services_share , both 
@@ -303,6 +311,7 @@ summarize _pscore if _treated==0  & _weight!=.
 * Keep only matched sample
 keep if _weight != . 
 
+* FLAG (reproducibility): estat trendplots needs xtdidregress results; it is not valid right after psmatch2.
 estat trendplots,  xlabel(648 653 659 665 671 677 683 689 695 701 707 713 719, format(%tm) angle(45))
 
 * Save matched municipalities list
@@ -323,6 +332,7 @@ summarize _pscore if _treated==1
 summarize _pscore if _treated==0  & _weight!=.
 
 //Save the control group to merge back in later
+* FLAG (reproducibility): these variables no longer exist after "keep panel_ID treated" above; legacy from an earlier version.
 drop log_FTE FTE agri_FTE_share manufacturing_FTE_share tourism_FTE_share
 keep if _treated==0 &  _weight!=.
 gen byte control = treated==0
@@ -377,6 +387,7 @@ dtable FTE_tradable_primary_share FTE_tradable_manu_share FTE_tradable_services_
 
 collect export "$output/SumTab1.docx", as(docx) replace
 
+* FLAG (reproducibility): no estimation results are active, so this and the outreg2 lines below fail.
 est store mytable,
 outreg2 [mytable] using "$output/TableSum1.doc", replace
 
@@ -426,6 +437,7 @@ gen l_FTE_total_nontradable = ln(FTE_total_nontradable)
 
 est clear
 
+* FLAG (reproducibility): event_time was already created above; this line errors.
 gen event_time =mdate 
 xtset
 **# Bookmark #5
@@ -477,7 +489,7 @@ reghdfe log_FTE did , absorb(panel_ID mdate) vce(cluster panel_ID)
 
 reghdfe log_FTE did FTE_tradable_primary_share FTE_tradable_manu_share FTE_tradable_services_share FTE_nontradable_gov_share FTE_nontradable_services_share prop_import , absorb(panel_ID mdate) vce(cluster panel_ID)
 
-*Kyk of sectoral composition employment growth kan voorspel
+*Check whether sectoral composition predicts employment growth
 reghdfe log_FTE FTE_tradable_primary_share FTE_tradable_manu_share FTE_tradable_services_share FTE_nontradable_gov_share FTE_nontradable_services_share prop_import , absorb(panel_ID mdate) vce(cluster panel_ID)
 
 **# Sector regs #8
@@ -510,6 +522,7 @@ esttab model2 model3 model4 model5 model6  using "$output/Sectors", rtf replace 
 
 xtdidregress (log_FTE ) (did_12m) , group(panel_ID) time(mdate) vce(cluster panel_ID) 
 
+* FLAG (syntax): bare variable list, not a command.
 FTE_tradable_primary_share FTE_tradable_manu_share FTE_tradable_services_share FTE_nontradable_gov_share FTE_nontradable_services_share prop_import
 
 
@@ -531,6 +544,7 @@ reghdfe log_FTE did, absorb(panel_ID  province_id#year ) vce(cluster panel_ID)
 xtdidregress (log_FTE ) (did_3m) , group(panel_ID) time(mdate) vce(cluster panel_ID) 
 xtdidregress (FTE_tradable_manu ) (did_3m) , group(panel_ID) time(mdate) vce(cluster panel_ID) 
 
+* FLAG (reproducibility): agri_FTE_share, manufacturing_FTE_share, tourism_FTE_share and FTE_tourism come from an earlier version of the panel and are not created by this script; commands using them fail.
 xtdidregress (log_FTE manufacturing_FTE_share  ) (did) , group(panel_ID) time(mdate) vce(cluster panel_ID) aeq
 
 xtdidregress (log_FTE l12.manufacturing_FTE_share l12.agri_FTE_share l12.MedianIncome l12.total_firms l12.prop_import ) (did) , group(panel_ID) time(mdate) vce(cluster panel_ID)  
@@ -555,6 +569,7 @@ estat ptrends
 
 estat grangerplot
 estat granger
+* FLAG (results): interpretation of the parallel-trends test written as a comment.
 *Do not have evidence to rejject tje null hypothesis of parllel trends 
 *Both tests support the paralel trend assumtpion
 dtable FTE , by(province_id) title(Table 1: Summary Statistics) 
@@ -564,6 +579,7 @@ dtable FTE FTE_tradable_primary_share FTE_tradable_manu_share FTE_tradable_servi
 
 dtable FTE FTE_tradable_primary_share FTE_tradable_manu_share FTE_tradable_services_share FTE_nontradable_gov_share FTE_nontradable_services_share prop_import, by(province_id) title(Table 1: Summary Statistics) 
 
+* FLAG (syntax): orphaned export() option - belongs to the dtable command above.
 export("$output/table 1 summary statistics.docx", as(docx) replace)
 twoway (connected log_FTE mdate if treated == 1, cmean)
 **# Bookmark #5
@@ -645,7 +661,7 @@ gen monthnum = month(dofm(mdate))
 gen byte is_feb = (monthnum == 2)
 
 *----------------------------------------------------
-*xtdidregress is kak, herdoen die regression hier: 
+*Re-estimate the event study manually with reghdfe instead of xtdidregress:
 replace event_time = . if treated == 0
 sum event_time
 gen event_time_shift = event_time - r(min)
@@ -662,6 +678,7 @@ xtreg log_FTE did agri_FTE_share manufacturing_FTE_share tourism_FTE_share i.mda
 
 xtdidregress (log_FTE post_1m post_2m post_3m post_4m post_5m post_6m post_12m baseline_MedianIncome baseline_agri_FTE_p baseline_manufacturing_FTE_p baseline_tourism_FTE_p ) (did) , group(panel_ID) time(mdate) vce(cluster panel_ID) aggregate(standard) aeq
 
+* FLAG (results): interpretation of the parallel-trends test written as a comment.
 *I do not reject parallel trends
 estat ptrends
 
@@ -669,6 +686,7 @@ estat trendplots
 *Effects over time, leads and lags woth 95% CI's
 estat grangerplot
 
+* FLAG (results): interpretation of the pre-trend test written as a comment.
 *not concerned by pretrends
 estat granger
 
@@ -677,7 +695,7 @@ xtdidregress (log_FTE  l12.manufacturing_FTE_share) (did) , group(panel_ID) time
 
 xtdidregress (log_FTE manufacturing_FTE_share agri_FTE_share MedianIncome total_firms prop_import ) (did) , group(panel_ID) time(mdate) vce(cluster panel_ID) aggregate(standard) 
 
-*BAIE INTERESANT
+*Granger plot with verbose output
 estat grangerplot, nodraw verbose
  
  
@@ -697,6 +715,7 @@ bysort treated: summarize log_FTE FTE agri_FTE_share manufacturing_FTE_share tou
 
 estat trendplots 
 
+* FLAG (results): interpretation of the pre-trend test written as a comment.
 *not concerned by pretrends
 estat granger
 
@@ -782,11 +801,13 @@ eststo est4:xtdidregress (log_FTE agri_FTE_share manufacturing_FTE_share tourism
 eststo est3: xtreg log_FTE i.did agri_FTE_share manufacturing_FTE_share tourism_FTE_share  i.mdate, fe vce(cluster _ID)
 
 
+* FLAG (syntax): incomplete command (no file name after using).
 esttab est3 est4 using 
 
 esttab est1 est4 using "$output/table_did_results.rtf",se star(* 0.10 ** 0.05 *** 0.01) b(3) se(3) keep(did agri_FTE_share manufacturing_FTE_share tourism_FTE_share prop_import) label replace
 
 *Postestimation and robustness
+* FLAG (syntax): incomplete command (no treatment specified).
 xtdidregress (log_FTE) 
 
 *----------------------
@@ -817,6 +838,7 @@ esttab est1 est2 est3
 
 
 
+* FLAG (reproducibility): first_flood_date and month_since are never created in this script (legacy flood-panel version); the code below fails.
 //Create a simple treatment variable, it becomes 1 and stays on after a municipality's first flood.
 gen affected_post = (y_m_date>=first_flood_date) & (first_flood_date!= .)
 
@@ -854,7 +876,7 @@ forvalues t=0/24 {
 }
 
 
-//Shenanigens to enable using grmap without destroying data
+//Workaround to enable grmap without collapsing the data
 //generating the average FTE of each municipality, district and province 
 bysort MUNICNAME: egen avg_FTE_muni = mean(FTE)
 bysort DISTRICT_N: egen avg_FTE_district = mean(FTE)
@@ -884,7 +906,7 @@ restore
 /////////////////////// 
 //REGRESSIONS//////////
 ///////////////////////
-//First attmept at making a weighted flood effect variable; don't have time right now to do this properly, will use severity from flood dataset for interrim; Where did you get the flood data?
+//First attempt at a weighted flood-effect variable; uses Severity from the flood dataset in the interim
 spxtregress log_FTE prop_import agri_FTE_share manufacturing_FTE_share i.affected, fe dvarlag(W) 
 
 //USING reghdfe for higher dimensional fixed effects
@@ -934,7 +956,7 @@ est store model4
 // STEP 5: Create results table
 esttab model1 model2 model3 model4, wide label
 
-//BIG RESULT
+//Event-time effects
 // Estimate effect at each event-time:
 xtreg log_FTE i.month_since total_firms prop_import agri_FTE_share manufacturing_FTE_share i.year, fe vce(cluster panel_ID)
 est store model1
@@ -967,7 +989,7 @@ xtreg log_FTE i.months_since_flood agri_FTE_share manufacturing_FTE_share prop_i
 
 
 outreg2 using "$output/baseline_results.doc", replace
-//IT WORKS!!!!!!!
+//Spatial FE model with a spatial lag of the dependent variable
 spxtregress log_FTE affected agri_FTE_share manufacturing_FTE_share prop_import  i.year, fe dvarlag(W)
 
 
@@ -986,11 +1008,13 @@ estpost tabstat FTE , statistics(mean sd min max sum) columns(statistic) by(prov
 tabstat FTE agri_FTE_share manufacturing_FTE_share tourism_FTE_share , statistics( mean sd min max sum) columns(statistic) by(ever_treated) long varwidth(25)
 
 . dtable FTE agri_FTE_share manufacturing_FTE_share tourism_FTE_share prop_import, by(province_id) title(Table 1: Summary Statistics) 
+* FLAG (syntax): orphaned export() option - belongs to the dtable command above.
 export("$output/table 1 summary statistics.docx", as(docx) replace)
 
 levelsof province_id, local(provs)
 
 foreach p of local provs {
+	* FLAG (syntax): two commands merged on one line; the loop below is the corrected version.
 	di "Summary statistics for province `p'"dtable FTE agri_FTE_share manufacturing_FTE_share tourism_FTE_share prop_import if province_id == `p',continuous(, statistics(mean sd min max)) nformat(%9.3f)title("Summary statistics – Province `p'")export("$output/summ_province`p'.docx", as(docx) replace)
 }
 
@@ -1050,7 +1074,7 @@ bysort year flood_dummy: summarize FTE prop_import
 
 xtset _ID y_m_date
 
-//Shenanigens to enable using grmap without destroying data
+//Workaround to enable grmap without collapsing the data
 //generating the average FTE of each municipality, district and province 
 bysort MUNICNAME: egen avg_FTE_muni = mean(FTE)
 bysort DISTRICT_N: egen avg_FTE_district = mean(FTE)

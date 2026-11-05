@@ -12,6 +12,7 @@ drop SIC7_2d SIC7_3d SIC7_4d SIC7_5d
 destring FTE, replace ignore("<10""<10")
 
 // SARS Spatial Tax Panel STANDARD IMPUTATION
+* FLAG (data): suppressed "<10" cells are imputed as 5 here, whereas the establishment-import build sets "<10" cells to missing.
 replace FTE = 5 if FTE==.
 
 //ssc install labutil2, replace

@@ -9,6 +9,7 @@ xtdidregress (l_FTE_nontradable_services prop_import) (did_12m) , group(panel_ID
 est store model5 
 xtdidregress (l_FTE_tradable_serv prop_import) (did_12m) , group(panel_ID) time(mdate) vce(cluster panel_ID)
 est store model6
+* FLAG (syntax): prop_import is listed twice.
 xtdidregress (l_FTE_total_tradable prop_import prop_import) (did_12m) , group(panel_ID) time(mdate) vce(cluster panel_ID)
 est store model7
 xtdidregress (l_FTE_total_nontradable prop_import) (did_12m) , group(panel_ID) time(mdate) vce(cluster panel_ID)
