@@ -35,4 +35,4 @@ dtable FTE , by(province_id) title(Table 1: Summary Statistics)
 
 dtable FTE FTE_tradable_primary_share FTE_tradable_manu_share FTE_tradable_services_share FTE_nontradable_gov_share FTE_nontradable_services_share prop_import, by(treated) title(Table 1: Summary Statistics) export("$output/table 1 summary statistics.docx", as(docx) replace)
 dtable FTE FTE_tradable_primary_share FTE_tradable_manu_share FTE_tradable_services_share FTE_nontradable_gov_share FTE_nontradable_services_share prop_import, by(province_id) title(Table 1: Summary Statistics) 
-twoway (connected log_FTE mdate if treated == 1, cmean)
+* PIPELINE: removed "twoway (connected log_FTE mdate if treated == 1, cmean)" - cmean is not a valid option; the line is kept in exploratory/original_working_script.do
