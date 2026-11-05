@@ -50,14 +50,18 @@ reghdfe log_FTE did FTE_tradable_primary_share FTE_tradable_manu_share FTE_trada
 
 *Check whether sectoral composition predicts employment growth
 reghdfe log_FTE FTE_tradable_primary_share FTE_tradable_manu_share FTE_tradable_services_share FTE_nontradable_gov_share FTE_nontradable_services_share prop_import , absorb(panel_ID mdate) vce(cluster panel_ID)
-* FLAG (reproducibility): the original session does not record which model the tests below were run after;
-* as written they apply to the last model estimated above.
+* PIPELINE: the original session does not record which model these tests were run after.
+* estat trendplots/ptrends/granger need a treatment that stays on (did, not did_1m-did_12m)
+* and no time-series operators (l12.) among the controls, so they are run on the simple
+* DiD model below, copied from the original script.
+xtdidregress (log_FTE ) (did) , group(panel_ID) time(mdate) vce(cluster panel_ID) 
 **# Bookmark #4
 *Post estimation and Robustness checks
 *------------
 *Parallel Trends Assumption
 estat trendplots
 estat trendplots,  xlabel(648 653 659 665 671 677 683 689 695 701 707 713 719, format(%tm) angle(45))
+graph export "$output/parallel_trends.png", replace width(1600)   // PIPELINE: save the figure
 
 estat ptrends
 
