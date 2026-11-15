@@ -113,21 +113,7 @@ make now.
 
   Today I would keep one script per step, run it from top to bottom, and version the code with
   git from the first day.
-- **Parallel trends can't be confirmed either way.** The linear-trends test does not reject,
-  but with 10 treated municipalities it has little power. Stata's Granger test for
-  pre-treatment effects rejects strongly with both control groups, but with monthly data it
-  tests about as many coefficients as there are clusters (F(23, 23) and F(18, 19)), so the
-  result is unreliable. The flood's timing is exogenous, but that alone doesn't guarantee
-  parallel trends: the treated municipalities are on the KwaZulu-Natal coast rather than
-  randomly chosen. A comment in my original script says both tests support parallel trends;
-  that overstated it. A better check would be an event study with leads grouped into a few
-  periods.
-- **Small sample.** There are 10 treated and 10–14 control municipalities, so standard errors are
-  clustered on only 20–24 groups. The wild-bootstrap check in `09_robustness.do` helps, but the
-  estimates are imprecise.
-- **The treatment windows switch off.** The 1-, 3-, 6- and 12-month DiD dummies turn back to zero
-  after the window, so later months of treated municipalities act as untreated observations. An
-  event-study design (for example Callaway and Sant'Anna) would handle the timing more cleanly.
+
 
 ## Author
 
